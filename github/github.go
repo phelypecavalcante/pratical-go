@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 )
 
 func main() {
@@ -21,29 +22,29 @@ func main() {
 
 // githubInfo returns name and number of public repos for login
 func githubInfo(login string) (string, int, error) {
-	resp, err := http.Get(fmt.Sprintf("https://api.github.com/users/%s", login))
+	url := fmt.Sprintf("https://api.github.com/users/%s", url.PathEscape(login))
+	resp, err := http.Get(url)
 	if err != nil {
-		return "", 0, fmt.Errorf("error: %s", err)
+		return "", 0, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return "", 0, fmt.Errorf("unexpected status code %s", resp.Status)
+		return "", 0, fmt.Errorf("%#v - %s", url, resp.Status)
 
 	}
 
 	fmt.Printf("Content-Type: %s\n", resp.Header.Get("Content-Type"))
 
-	var r Reply
+	var r struct {
+		Name        string `json:"name,omitempty"`
+		PublicRepos int    `json:"public_repos,omitempty"`
+	}
+
 	dec := json.NewDecoder(resp.Body)
 	if err := dec.Decode(&r); err != nil {
 		return "", 0, err
 	}
 
-	return r.Name, 2, nil
-}
-
-type Reply struct {
-	Name        string `json:"name,omitempty"`
-	PublicRepos string `json:"public_repos,omitempty"`
+	return r.Name, r.PublicRepos, nil
 }
 
 /* JSON <-> Go
