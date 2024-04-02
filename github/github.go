@@ -27,12 +27,11 @@ func githubInfo(login string) (string, int, error) {
 	if err != nil {
 		return "", 0, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return "", 0, fmt.Errorf("%#v - %s", url, resp.Status)
 
 	}
-
-	fmt.Printf("Content-Type: %s\n", resp.Header.Get("Content-Type"))
 
 	var r struct {
 		Name        string `json:"name,omitempty"`
