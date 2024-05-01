@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -23,6 +24,18 @@ func main() {
 	}
 	fmt.Println(w)
 	// mapDemo()
+
+	file, err = os.Open("sherlock.txt")
+	if err != nil {
+		log.Fatalf("error: %s", err)
+	}
+	defer file.Close()
+
+	ws, errN := mostCommonN(file, 10)
+	if errN != nil {
+		log.Fatalf("error: %s", errN)
+	}
+	fmt.Println(ws)
 }
 
 // Q: What is the most common word (ignore case) in sherlock.text?
@@ -88,6 +101,56 @@ func mostCommon(r io.Reader) (string, error) {
 		return "", err
 	}
 	return maxWord(freqs)
+}
+
+type WordFrequency struct {
+	Word      string
+	Frequency int
+}
+
+type ByFrequency []WordFrequency
+
+func (f ByFrequency) Len() int {
+	return len(f)
+}
+func (f ByFrequency) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
+func (f ByFrequency) Less(i, j int) bool {
+	return f[i].Frequency > f[j].Frequency
+}
+
+func mostCommonN(r io.Reader, n int) ([]string, error) {
+	freqs, err := wordFrequency(r)
+	if err != nil {
+		return nil, err
+	}
+
+	wfs := make([]WordFrequency, 0, len(freqs))
+
+	for k, v := range freqs {
+		wfs = append(wfs, WordFrequency{
+			Word:      k,
+			Frequency: v,
+		})
+	}
+
+	sort.Sort(ByFrequency(wfs))
+
+	return maxWords(wfs, n)
+}
+
+func maxWords(wfs []WordFrequency, n int) ([]string, error) {
+	if len(wfs) == 0 {
+		return nil, fmt.Errorf("empty map")
+	}
+
+	words := make([]string, 0, n)
+	for _, v := range wfs[:n] {
+		words = append(words, v.Word)
+	}
+
+	return words, nil
 }
 
 func maxWord(freqs map[string]int) (string, error) {
